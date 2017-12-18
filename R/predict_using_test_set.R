@@ -14,7 +14,7 @@ predict_using_test_set <- function(list_model) {
     stop("Input must be a `normalweatherr_model`.", call. = FALSE)
   
   # Predict
-  value_predict <- enlightenr::make_prediction(
+  value_predict <- make_prediction(
     list_model$model, 
     list_model$testing
   )

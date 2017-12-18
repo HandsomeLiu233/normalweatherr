@@ -16,11 +16,8 @@ To install the development version the [**devtools**](https://github.com/hadley/
 # Load helper package
 library(devtools)
 
-# Install dependencies
-install_github("skgrange/enlightenr")
-
 # Install normalweatherr
-install_github("skgrange/normalweatherr")
+install_github("davidcarslaw/normalweatherr")
 ```
 
 ## Steps for usage
@@ -105,8 +102,7 @@ model_rf$model
 # Good performance, r2 ~80 %
 
 # Normalise for meteorology
-# Allow for parallel processing, a lot quicker
-register_cores()
+# Implements parallel processing to speed things up
 
 data_normalised <- normalise_for_meteorology(
   model_rf$model, 

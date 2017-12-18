@@ -47,26 +47,6 @@ random_rows <- function(df, fraction = 0.8) {
 }
 
 
-#' Function to register parallel backend. 
-#'
-#' @author Stuart K. Grange
-#' 
-#' @return Invisible. 
-#'
-#' @export
-register_cores <- function(cores = NA) {
-  
-  # Default is n - 1
-  if (is.na(cores)) cores <- 4 #parallel::detectCores() - 1
-  
-  # Register
-  cl <- parallel::makeCluster(cores)
-  doParallel::registerDoParallel(cl)
-  
-  # No return
-  
-}
-
 
 #' @importFrom openair timeAverage
 #' @export
@@ -145,3 +125,13 @@ make_prediction <- function(model, df) {
   return(x)
   
 }
+
+# from Stuart's enlightenr package
+#' @export
+extract_rf_mse <- function(list_model, na.rm = FALSE)
+  min(list_model$mse, na.rm = na.rm)
+
+
+#' @export
+extract_rf_r_squared <- function(list_model, na.rm = FALSE)
+  max(list_model$rsq, na.rm = na.rm) * 100
