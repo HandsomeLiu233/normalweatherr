@@ -16,6 +16,7 @@
 #' @param output File name to export the model object as an \code{.rds} file. 
 #' If not used, the model will not be exported to disc. Directories will be 
 #' created if necessary.  
+#' @import parallel foreach doParallel
 #' 
 #' @author Stuart K. Grange
 #' 
@@ -74,16 +75,27 @@ normalise_for_meteorology <- function(list_model, df, variables, n = 100,
   }
   
   # Do in parallel
-  df <- plyr::ldply(1:n, function(x) 
-    randomly_sample_meteorology(
-      list_model, 
-      df, 
-      variables,
-      replace = replace,
-      model = model_type
-    ), 
-    .parallel = TRUE) %>% 
-    group_by(date) %>% 
+  # df <- plyr::ldply(1:n, function(x) 
+  #   randomly_sample_meteorology(
+  #     list_model, 
+  #     df, 
+  #     variables,
+  #     replace = replace,
+  #     model = model_type
+  #   ), 
+  #   .parallel = TRUE) 
+  
+  cl <- makeCluster(4)
+  registerDoParallel(cl)
+  
+  df <- foreach (i = 1:n, .inorder = FALSE, .combine = "rbind", 
+                         .packages = "gbm", 
+                 .export = c("randomly_sample_meteorology", "make_prediction")) %dopar%
+    randomly_sample_meteorology(list_model, df, variables, replace = replace, model = model_type)
+  
+  stopCluster(cl)
+  
+  df <- group_by(df, date) %>% 
     summarise(value_predict = mean(value_predict, na.rm = TRUE)) %>% 
     ungroup() %>% 
     data.frame()
@@ -119,7 +131,7 @@ randomly_sample_meteorology <- function(list_model, df, variables, replace,
   df[variables] <- lapply(df[variables], function(x) x[index_rows])
   
   # Use models to predict
-  value_predict <- enlightenr::make_prediction(list_model, df)
+  value_predict <- make_prediction(list_model, df)
     
   # Build data frame of predictions
   df <- data.frame(

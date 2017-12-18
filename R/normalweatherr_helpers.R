@@ -57,10 +57,11 @@ random_rows <- function(df, fraction = 0.8) {
 register_cores <- function(cores = NA) {
   
   # Default is n - 1
-  if (is.na(cores)) cores <- parallel::detectCores() - 1
+  if (is.na(cores)) cores <- 4 #parallel::detectCores() - 1
   
   # Register
-  doMC::registerDoMC(cores)
+  cl <- parallel::makeCluster(cores)
+  doParallel::registerDoParallel(cl)
   
   # No return
   
@@ -76,4 +77,71 @@ mode_average <- function (x, na.rm = FALSE) {
   if (na.rm) x <- na.omit(x)
   ux <- unique(x)
   ux[which.max(tabulate(match(x, ux)))]
+}
+
+#' Function to predict using a model object and return a vector. 
+#' 
+#' @param model Model object which can be used with \code{\link{predict}}. 
+#' 
+#' @param df Data frame containing input data which can be used by \code{model},
+#' not always needed. 
+#' 
+#' @author Stuart K. Grange
+#' 
+#' @return Numeric vector. 
+#' 
+#' @examples
+#' \dontrun{
+#' 
+#' # Predict using a random forest model
+#' value_predict <- make_prediction(list_random_forest, data_testing_set)
+#' 
+#' }
+#' 
+#' @export
+make_prediction <- function(model, df) {
+  
+  # Get class of model object
+  model_class <- class(model)[1]
+  
+  # Different prediction logic dependent on model type
+  if (model_class == "gam") {
+    
+    # Seems to be generic
+    x <- unname(predict(model, df))
+    
+    # A one dimensional matrix? A little odd, drop
+    attr(x, "dim") <- NULL
+    
+  } else if (model_class == "randomForest.formula") {
+    
+    # Can be generic, but use name space for when the package is not loaded
+    x <- unname(randomForest:::predict.randomForest(model, df))
+    
+  } else if (model_class == "ksvm") {
+    
+    # Not generic and returns a matrix
+    x <- unname(kernlab::predict(model, df))[, 1]
+    
+  } else if (model_class == "gbm") {
+    
+    # Use a vector but needs an extra argument, comes from model object
+    x <- gbm::predict.gbm(
+      model, 
+      df, 
+      n.trees = length(model$trees)
+    )
+    
+  } else if (model_class == "lm") {
+    
+    x <- unname(predict(model, df))
+    
+  } else {
+    
+    stop("Model not recognised.", call. = FALSE)
+    
+  }
+  
+  return(x)
+  
 }
